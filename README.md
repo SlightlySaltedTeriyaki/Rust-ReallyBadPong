@@ -10,4 +10,4 @@ Be careful not to get the ball stuck, though.
 
 Also the speed is totally random, be ready for some REALLY slow games and others where you won't even be able to hit the ball.
 
-(I did what i could.)
+(I did what I could.)
