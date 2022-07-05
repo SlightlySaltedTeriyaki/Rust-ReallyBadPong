@@ -51,7 +51,7 @@ fn main() {
             width: WINDOW_HEIGHT,
             height: WINDOW_WIDTH,
             present_mode: PresentMode::Fifo,
-            //resizable: false,
+            resizable: false,
             ..default()
         })
         .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
@@ -64,7 +64,9 @@ fn main() {
 }
 
 fn setup_system(
-    mut commands: Commands) {
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    audio: Res<Audio>,) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
     let mut rng = rand::thread_rng();
 
@@ -154,6 +156,8 @@ fn right_paddle_move(
 fn ball_move(
     mut qeury: Query<(&mut BallDirection, &mut Transform), With<Ball>>,
     position: ResMut<PaddlePosition>,
+    asset_server: Res<AssetServer>,
+    audio: Res<Audio>,
 ){
     for (mut direction, mut transform) in qeury.iter_mut() {
         transform.translation.x +=  direction.x;
@@ -161,21 +165,28 @@ fn ball_move(
 
         let mut rng = rand::thread_rng();
 
+        let hit_wall = asset_server.load("hitwall.ogg");
+        let hit_paddle = asset_server.load("hitpaddle.ogg");
+        let miss = asset_server.load("miss.ogg");
+
         //BALL HITTING FLOOR AND CEILING
         if transform.translation.y > (WINDOW_HEIGHT_HALF / 1.85) || transform.translation.y < (-WINDOW_HEIGHT_HALF / 1.85) {
             direction.y = -direction.y;
+
+            audio.play(hit_wall);
         }
         //BALL HITTING PADDLES
         if ((transform.translation.y + BALL_HALF > position.pr - PADDLE_HEIGHT / 2.0 || transform.translation.y - BALL_HALF > position.pr - PADDLE_HEIGHT / 2.0)
         && (transform.translation.y - BALL_HALF < position.pr + PADDLE_HEIGHT / 2.0 || transform.translation.y + BALL_HALF < position.pr + PADDLE_HEIGHT / 2.0))
-        && transform.translation.x > (WINDOW_WIDTH - PADDLE_HEIGHT) && (transform.translation.x < (WINDOW_WIDTH - PADDLE_HEIGHT + 5.0)){
-            direction.x = -direction.x;
-        }
-        if ((transform.translation.y + BALL_HALF > position.pl - PADDLE_HEIGHT / 2.0 || transform.translation.y - BALL_HALF > position.pl - PADDLE_HEIGHT / 2.0)
+        && transform.translation.x > (WINDOW_WIDTH - PADDLE_HEIGHT) && (transform.translation.x < (WINDOW_WIDTH - PADDLE_HEIGHT + 5.0))
+        ||
+        ((transform.translation.y + BALL_HALF > position.pl - PADDLE_HEIGHT / 2.0 || transform.translation.y - BALL_HALF > position.pl - PADDLE_HEIGHT / 2.0)
         && (transform.translation.y - BALL_HALF < position.pl + PADDLE_HEIGHT_HALF || transform.translation.y + BALL_HALF < position.pl + PADDLE_HEIGHT / 2.0))
         && (transform.translation.x < (-WINDOW_WIDTH + PADDLE_HEIGHT) && transform.translation.x > (-WINDOW_WIDTH + PADDLE_HEIGHT - 5.0)){
             direction.x = -direction.x;
+            audio.play(hit_paddle);
         }
+
         //MISSING
         if transform.translation.x < -WINDOW_WIDTH || transform.translation.x > WINDOW_WIDTH + PADDLE_HEIGHT {
             transform.translation.y = 0.0;
@@ -183,6 +194,8 @@ fn ball_move(
 
             direction.x = (BALL_SPEED + rng.gen_range(-10.0..10.0)) * rng.gen_range(-0.1..0.1) * 10.0 * TIME_STEP;
             direction.y = (BALL_SPEED + rng.gen_range(-10.0..10.0)) * rng.gen_range(-0.1..0.1) * 10.0 * TIME_STEP;
+
+            audio.play(miss);
         }
     }
 }
